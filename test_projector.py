@@ -1,4 +1,3 @@
-
 import requests
 import xmltodict
 
@@ -82,34 +81,52 @@ def update_xml_body(id_address):
     """
 
 
+def create_address():
+    request_data = create_xml_body()
+    return requests.post(ENDPOINT + '/addresses', auth=(key, ""),
+                                    headers={"Content-Type": "application/xml"}, data=request_data)
+
+
+def get_address(id_address):
+    return requests.get(ENDPOINT + '/addresses/' + id_address, auth=(key, ""))
+
+
+def put_address(request_data):
+    return requests.put(ENDPOINT + '/addresses/', auth=(key, ""),
+                                   headers={"Content-Type": "application/xml"}, data=request_data)
+
+
+def delete_address(id_address):
+    return requests.delete(ENDPOINT + '/addresses/' + id_address, auth=(key, ""))
+
+
 def test_can_create_address():
     # ------create address -----
-    request_data = create_xml_body()
-    response_create = requests.post(ENDPOINT + '/addresses', auth=(key, ""),
-                                    headers={"Content-Type": "application/xml"}, data=request_data)
+
+    response_create = create_address()
     assert response_create.status_code == 201
 
     # ------- get address -------
     response_create_data = xmltodict.parse(response_create.text)
-    id_address = response_create_data['prestashop']['address']['id']
+    created_id_address = response_create_data['prestashop']['address']['id']
 
-    response_get = requests.get(ENDPOINT + '/addresses/' + id_address, auth=(key, ""))
+    response_get = get_address(created_id_address)
     assert response_get.status_code == 200
 
     response_get_data = xmltodict.parse(response_get.text)
 
     last_name_from_create = response_create_data['prestashop']['address']['lastname']
     last_name_from_get = response_get_data['prestashop']['address']['lastname']
+    updated_id_address = response_get_data['prestashop']['address']['id']
 
     assert last_name_from_create == last_name_from_get
+    assert created_id_address == updated_id_address
 
 
 def test_can_update_address():
 
     # ------create address -----
-    request_data = create_xml_body()
-    response_create = requests.post(ENDPOINT + '/addresses', auth=(key, ""),
-                                    headers={"Content-Type": "application/xml"}, data=request_data)
+    response_create = create_address()
     assert response_create.status_code == 201
 
     # ------update address ------
@@ -117,13 +134,12 @@ def test_can_update_address():
     id_address = response_create_data['prestashop']['address']['id']
 
     request_data = update_xml_body(id_address)
-    response_update = requests.put(ENDPOINT + '/addresses/', auth=(key, ""),
-                                   headers={"Content-Type": "application/xml"}, data=request_data)
+    response_update = put_address(request_data)
 
     assert response_update.status_code == 200
 
     # ------ verify address --------
-    response_verify_get = requests.get(ENDPOINT + '/addresses/' + id_address, auth=(key, ""))
+    response_verify_get = get_address(id_address)
     assert response_verify_get.status_code == 200
 
     response_verify_get = xmltodict.parse(response_verify_get.text)
@@ -137,18 +153,16 @@ def test_can_update_address():
 def test_can_delete_address():
 
     # -------- create address --------
-    request_data = create_xml_body()
-    response_create_for_delete = requests.post(ENDPOINT + '/addresses', auth=(key, ""),
-                                               headers={"Content-Type": "application/xml"}, data=request_data)
-    assert response_create_for_delete.status_code == 201
+    response_create = create_address()
+    assert response_create.status_code == 201
 
     # -------- delete address --------
-    response_create_for_delete= xmltodict.parse(response_create_for_delete.text)
-    id_address = response_create_for_delete['prestashop']['address']['id']
+    response_create = xmltodict.parse(response_create.text)
+    id_address = response_create['prestashop']['address']['id']
 
-    response_get = requests.delete(ENDPOINT + '/addresses/' + id_address, auth=(key, ""))
+    response_get = delete_address(id_address)
     assert response_get.status_code == 200
 
     # -------- get address --------
-    response_verify_get_after_delete = requests.get(ENDPOINT + '/addresses/' + id_address, auth=(key, ""))
-    assert response_verify_get_after_delete.status_code == 404
+    response_delete = get_address(id_address)
+    assert response_delete.status_code == 404
