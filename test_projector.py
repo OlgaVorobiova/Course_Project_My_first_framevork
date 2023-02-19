@@ -81,6 +81,7 @@ def update_xml_body(id_address):
     </prestashop>
     """
 
+
 def test_can_create_address():
     # ------create address -----
     request_data = create_xml_body()
@@ -114,13 +115,40 @@ def test_can_update_address():
     # ------update address ------
     response_create_data = xmltodict.parse(response_create.text)
     id_address = response_create_data['prestashop']['address']['id']
-    print(id_address)
-    #
+
     request_data = update_xml_body(id_address)
     response_update = requests.put(ENDPOINT + '/addresses/', auth=(key, ""),
                                    headers={"Content-Type": "application/xml"}, data=request_data)
 
     assert response_update.status_code == 200
-    print(response_update.text)
 
-    #------ verify address --------
+    # ------ verify address --------
+    response_verify_get = requests.get(ENDPOINT + '/addresses/' + id_address, auth=(key, ""))
+    assert response_verify_get.status_code == 200
+
+    response_verify_get = xmltodict.parse(response_verify_get.text)
+
+    address2_from_create = response_create_data['prestashop']['address']['address2']
+    address2_from_get = response_verify_get['prestashop']['address']['address2']
+
+    assert address2_from_create == address2_from_get
+
+
+def test_can_delete_address():
+
+    # -------- create address --------
+    request_data = create_xml_body()
+    response_create_for_delete = requests.post(ENDPOINT + '/addresses', auth=(key, ""),
+                                               headers={"Content-Type": "application/xml"}, data=request_data)
+    assert response_create_for_delete.status_code == 201
+
+    # -------- delete address --------
+    response_create_for_delete= xmltodict.parse(response_create_for_delete.text)
+    id_address = response_create_for_delete['prestashop']['address']['id']
+
+    response_get = requests.delete(ENDPOINT + '/addresses/' + id_address, auth=(key, ""))
+    assert response_get.status_code == 200
+
+    # -------- get address --------
+    response_verify_get_after_delete = requests.get(ENDPOINT + '/addresses/' + id_address, auth=(key, ""))
+    assert response_verify_get_after_delete.status_code == 404
